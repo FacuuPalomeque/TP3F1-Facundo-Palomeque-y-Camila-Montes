@@ -1,0 +1,217 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+
+class TP3F1
+{
+    static string[,] datos;
+    static int filas, columnas;
+
+    static void Main()
+    {
+        datos = CargarDatos();
+        if (datos != null)
+        {
+            filas = datos.GetLength(0);
+            columnas = datos.GetLength(1);
+            MenuPrincipal();
+        }
+    }
+
+    static string[,] CargarDatos()
+    {
+        string rutaArchivo = @"..\..\..\f1_last5years.csv";
+        string[] lineas = File.ReadAllLines(rutaArchivo);
+
+        int filas = lineas.Length;
+        int cols = lineas[0].Split(',').Length;
+
+        string[,] datos = new string[filas, cols];
+
+        for (int i = 0; i < filas; i++)
+        {
+            string[] values = lineas[i].Split(',');
+            for (int j = 0; j < cols; j++)
+            {
+                datos[i, j] = values[j];
+            }
+        }
+
+        return datos;
+    }
+
+    static void MenuPrincipal()
+    {
+        int opcion;
+        do
+        {
+            Console.WriteLine("====== ANÁLISIS DE F1 (2016-2024) =====");
+            Console.WriteLine("1. Podios de un piloto");
+            Console.WriteLine("2. Puntos de equipo por año");
+            Console.WriteLine("3. Mejor remontada");
+            Console.WriteLine("4. Lista de equipos");
+            Console.WriteLine("5. Ver todos los datos");
+            Console.WriteLine("6. Salir");
+            Console.Write("Elige una opcion: ");
+
+            opcion = int.Parse(Console.ReadLine());
+
+            switch (opcion)
+            {
+                case 1: PodiosPiloto(); break;
+                case 2: PuntosEquipo(); break;
+                case 3: MejorRemontada(); break;
+                case 4: ListaEquipos(); break;
+                case 5: VerDatos(); break;
+                case 6: Console.WriteLine("Adios!"); break;
+                default: Console.WriteLine("Opcion incorrecta"); break;
+            }
+
+            if (opcion != 6)
+            {
+                Console.WriteLine("\nPresiona Enter para continuar");
+                Console.ReadLine();
+                Console.Clear();
+            }
+
+        } while (opcion != 6);
+    }
+
+    static void PodiosPiloto()
+    {
+        Console.Write("Nombre del piloto: ");
+        string nombre = Console.ReadLine();
+        int podios = 0;
+
+        for (int i = 1; i < filas; i++)
+        {
+            if (datos[i, 2].ToLower().Contains(nombre.ToLower()))
+            {
+                int posicion = int.Parse(datos[i, 5]);
+                if (posicion == 1 || posicion == 2 || posicion == 3)
+                {
+                    podios++;
+                }
+            }
+        }
+
+        if (podios > 0)
+        {
+            Console.WriteLine($"{nombre} tuvo {podios} podios");
+        }
+        else
+        {
+            Console.WriteLine("Piloto no encontrado o sin podios");
+        }
+    }
+
+    static void PuntosEquipo()
+    {
+        Console.Write("Nombre del equipo: ");
+        string equipo = Console.ReadLine();
+        Console.Write("Año: ");
+        string año = Console.ReadLine();
+
+        double total = 0;
+        bool encontrado = false;
+
+        Console.WriteLine($"\nResultados de {equipo} en {año}:");
+
+        for (int i = 1; i < filas; i++)
+        {
+            if (datos[i, 0] == año && datos[i, 1].ToLower() == equipo.ToLower())
+            {
+                encontrado = true;
+                string piloto = datos[i, 2];
+                double puntos = double.Parse(datos[i, 6]);
+                total += puntos;
+                Console.WriteLine($"{piloto}: {puntos} puntos");
+            }
+        }
+
+        if (encontrado)
+        {
+            Console.WriteLine($"Total: {total} puntos");
+        }
+        else
+        {
+            Console.WriteLine("No se encontraron datos");
+        }
+    }
+
+    static void MejorRemontada()
+    {
+        int mejor = 0;
+        string pilotoMejor = "", añoMejor = "", carreraMejor = "", equipoMejor = "";
+
+        for (int i = 1; i < filas; i++)
+        {
+            int salida = int.Parse(datos[i, 4]);
+            int llegada = int.Parse(datos[i, 5]);
+            int remontada = salida - llegada;
+
+            if (remontada > mejor)
+            {
+                mejor = remontada;
+                pilotoMejor = datos[i, 2];
+                añoMejor = datos[i, 0];
+                carreraMejor = datos[i, 3];
+                equipoMejor = datos[i, 1];
+            }
+        }
+
+        Console.WriteLine("La mejor remontada fue:");
+        Console.WriteLine($"Piloto: {pilotoMejor}");
+        Console.WriteLine($"Año: {añoMejor}");
+        Console.WriteLine($"Carrera: {carreraMejor}");
+        Console.WriteLine($"Equipo: {equipoMejor}");
+        Console.WriteLine($"Remontada: +{mejor} posiciones");
+    }
+
+    static void ListaEquipos()
+    {
+        List<string> equipos = new List<string>();
+
+        for (int i = 1; i < filas; i++)
+        {
+            string equipo = datos[i, 1];
+            if (!equipos.Contains(equipo))
+            {
+                equipos.Add(equipo);
+            }
+        }
+
+        for (int i = 0; i < equipos.Count - 1; i++)
+        {
+            for (int j = 0; j < equipos.Count - i - 1; j++)
+            {
+                if (string.Compare(equipos[j], equipos[j + 1]) > 0)
+                {
+                    string temp = equipos[j];
+                    equipos[j] = equipos[j + 1];
+                    equipos[j + 1] = temp;
+                }
+            }
+        }
+
+        Console.WriteLine("Equipos ordenados:");
+        foreach (string equipo in equipos)
+        {
+            Console.WriteLine(equipo);
+        }
+    }
+
+    static void VerDatos()
+    {
+        Console.WriteLine("Todos los datos:\n");
+
+        for (int i = 0; i < filas; i++)
+        {
+            for (int j = 0; j < columnas; j++)
+            {
+                Console.Write(datos[i, j] + " | ");
+            }
+            Console.WriteLine();
+        }
+    }
+}

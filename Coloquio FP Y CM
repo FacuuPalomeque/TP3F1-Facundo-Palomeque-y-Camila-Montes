@@ -20,7 +20,7 @@ class TP3F1
 
     static string[,] CargarDatos()
     {
-        string rutaArchivo = @"..\..\..\f1_last5years.csv";
+        string rutaArchivo = @"C:\Users\Usuario\Desktop\PROGRAMACIONFP\\f1_last5years.csv";
         string[] lineas = File.ReadAllLines(rutaArchivo);
 
         int filas = lineas.Length;
@@ -30,7 +30,11 @@ class TP3F1
 
         for (int i = 0; i < filas; i++)
         {
-            string[] values = lineas[i].Split(',');
+            string linea = lineas[i];
+            if (i == 0 && linea.Length > 0 && linea[0] == '\uFEFF')
+                linea = linea.Substring(1);
+
+            string[] values = linea.Split(',');
             for (int j = 0; j < cols; j++)
             {
                 datos[i, j] = values[j];
@@ -52,9 +56,14 @@ class TP3F1
             Console.WriteLine("4. Lista de equipos");
             Console.WriteLine("5. Ver todos los datos");
             Console.WriteLine("6. Salir");
+            Console.WriteLine("7. Promedio de mejora por piloto"); // ESTA ES LA NUEVA FUNCIÓN
             Console.Write("Elige una opcion: ");
 
-            opcion = int.Parse(Console.ReadLine());
+            if (!int.TryParse(Console.ReadLine(), out opcion))
+            {
+                Console.WriteLine("Entrada inválida. Intente nuevamente.");
+                continue;
+            }
 
             switch (opcion)
             {
@@ -64,7 +73,8 @@ class TP3F1
                 case 4: ListaEquipos(); break;
                 case 5: VerDatos(); break;
                 case 6: Console.WriteLine("Adios!"); break;
-                default: Console.WriteLine("Opcion incorrecta"); break;
+                case 7: PromedioMejoraPiloto(); break;  // nueva funcion
+                default: Console.WriteLine("Opción incorrecta"); break;
             }
 
             if (opcion != 6)
@@ -87,22 +97,19 @@ class TP3F1
         {
             if (datos[i, 2].ToLower().Contains(nombre.ToLower()))
             {
-                int posicion = int.Parse(datos[i, 5]);
-                if (posicion == 1 || posicion == 2 || posicion == 3)
+                int llegada;
+                if (int.TryParse(datos[i, 5], out llegada))
                 {
-                    podios++;
+                    if (llegada == 1 || llegada == 2 || llegada == 3)
+                        podios++;
                 }
             }
         }
 
         if (podios > 0)
-        {
             Console.WriteLine($"{nombre} tuvo {podios} podios");
-        }
         else
-        {
             Console.WriteLine("Piloto no encontrado o sin podios");
-        }
     }
 
     static void PuntosEquipo()
@@ -123,44 +130,51 @@ class TP3F1
             {
                 encontrado = true;
                 string piloto = datos[i, 2];
-                double puntos = double.Parse(datos[i, 6]);
+                double puntos;
+                double.TryParse(datos[i, 6], out puntos);
                 total += puntos;
                 Console.WriteLine($"{piloto}: {puntos} puntos");
             }
         }
 
         if (encontrado)
-        {
             Console.WriteLine($"Total: {total} puntos");
-        }
         else
-        {
             Console.WriteLine("No se encontraron datos");
-        }
     }
 
     static void MejorRemontada()
     {
-        int mejor = 0;
+        int mejor = int.MinValue;
         string pilotoMejor = "", añoMejor = "", carreraMejor = "", equipoMejor = "";
 
         for (int i = 1; i < filas; i++)
         {
-            int salida = int.Parse(datos[i, 4]);
-            int llegada = int.Parse(datos[i, 5]);
-            int remontada = salida - llegada;
+            int salida, llegada;
 
-            if (remontada > mejor)
+            if (int.TryParse(datos[i, 4], out salida) &&
+                int.TryParse(datos[i, 5], out llegada))
             {
-                mejor = remontada;
-                pilotoMejor = datos[i, 2];
-                añoMejor = datos[i, 0];
-                carreraMejor = datos[i, 3];
-                equipoMejor = datos[i, 1];
+                int remontada = salida - llegada;
+
+                if (remontada > mejor)
+                {
+                    mejor = remontada;
+                    pilotoMejor = datos[i, 2];
+                    añoMejor = datos[i, 0];
+                    carreraMejor = datos[i, 3];
+                    equipoMejor = datos[i, 1];
+                }
             }
         }
 
-        Console.WriteLine("La mejor remontada fue:");
+        if (mejor == int.MinValue)
+        {
+            Console.WriteLine("No hay datos válidos.");
+            return;
+        }
+
+        Console.WriteLine("\nLa mejor remontada fue:");
         Console.WriteLine($"Piloto: {pilotoMejor}");
         Console.WriteLine($"Año: {añoMejor}");
         Console.WriteLine($"Carrera: {carreraMejor}");
@@ -176,35 +190,18 @@ class TP3F1
         {
             string equipo = datos[i, 1];
             if (!equipos.Contains(equipo))
-            {
                 equipos.Add(equipo);
-            }
         }
 
-        for (int i = 0; i < equipos.Count - 1; i++)
-        {
-            for (int j = 0; j < equipos.Count - i - 1; j++)
-            {
-                if (string.Compare(equipos[j], equipos[j + 1]) > 0)
-                {
-                    string temp = equipos[j];
-                    equipos[j] = equipos[j + 1];
-                    equipos[j + 1] = temp;
-                }
-            }
-        }
+        equipos.Sort();
 
         Console.WriteLine("Equipos ordenados:");
-        foreach (string equipo in equipos)
-        {
-            Console.WriteLine(equipo);
-        }
+        foreach (string e in equipos)
+            Console.WriteLine(e);
     }
 
     static void VerDatos()
     {
-        Console.WriteLine("Todos los datos:\n");
-
         for (int i = 0; i < filas; i++)
         {
             for (int j = 0; j < columnas; j++)
@@ -212,6 +209,60 @@ class TP3F1
                 Console.Write(datos[i, j] + " | ");
             }
             Console.WriteLine();
+        }
+    }
+
+    // ================================
+    // PROMEDIO DE MEJORA POR PILOTO (NUEVA FUNCION AGREGADA)
+    // ================================
+    static void PromedioMejoraPiloto()
+    {
+        Console.Write("Nombre del piloto: ");
+        string nombre = Console.ReadLine();
+
+        int carrerasConsideradas = 0;
+        double sumaMejoras = 0;
+
+        for (int i = 1; i < filas; i++)
+        {
+            if (datos[i, 2].ToLower().Contains(nombre.ToLower()))
+            {
+                int salida, llegada;
+
+                if (int.TryParse(datos[i, 4], out salida) &&
+                    int.TryParse(datos[i, 5], out llegada))
+                {
+                    int mejora = salida - llegada;
+                    sumaMejoras += mejora;
+                    carrerasConsideradas++;
+                }
+            }
+        }
+
+        if (carrerasConsideradas == 0)
+        {
+            Console.WriteLine("Piloto no encontrado o sin datos válidos");
+            return;
+        }
+
+        double promedio = sumaMejoras / carrerasConsideradas;
+
+        Console.WriteLine($"\nPiloto: {nombre}");
+        Console.WriteLine($"Carreras consideradas: {carrerasConsideradas}");
+        Console.WriteLine($"Promedio de mejora por carrera: {promedio:F2}");
+
+        // Mensaje según signo del promedio
+        if (promedio > 0)
+        {
+            Console.WriteLine("(Números positivos indican que el piloto ganó posiciones en promedio)");
+        }
+        else if (promedio < 0)
+        {
+            Console.WriteLine("(Números negativos indican que el piloto perdió posiciones en promedio)");
+        }
+        else
+        {
+            Console.WriteLine("(Promedio 0: el piloto no ganó ni perdió posiciones en promedio)");
         }
     }
 }
